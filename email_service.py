@@ -9,20 +9,21 @@ from errors import ConfigurationError, EmailSendError
 
 load_dotenv()
 
-FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL")
+
+def _from_email() -> str | None:
+    return os.environ.get("SENDGRID_FROM_EMAIL")
 
 
 def _require_sendgrid_config() -> None:
     if not os.environ.get("SENDGRID_API_KEY"):
         raise ConfigurationError("SENDGRID_API_KEY is not set in the environment.")
 
-    if not FROM_EMAIL:
+    if not _from_email():
         raise ConfigurationError("SENDGRID_FROM_EMAIL is not set in the environment.")
 
 
-@function_tool
-def send_email(body: str, receiver_email: str):
-    """Send out an approved email to the receiver email."""
+def deliver_email(body: str, receiver_email: str) -> dict:
+    """Send an email via SendGrid. Used by the agent tool and tests."""
 
     _require_sendgrid_config()
 
@@ -37,7 +38,7 @@ def send_email(body: str, receiver_email: str):
             api_key=os.environ.get("SENDGRID_API_KEY")
         )
 
-        from_email = Email(FROM_EMAIL)
+        from_email = Email(_from_email())
         to_email = To(receiver_email)
 
         content = Content("text/plain", body)
@@ -64,3 +65,9 @@ def send_email(body: str, receiver_email: str):
         "status": "success",
         "sent_to": receiver_email,
     }
+
+
+@function_tool
+def send_email(body: str, receiver_email: str):
+    """Send out an approved email to the receiver email."""
+    return deliver_email(body, receiver_email)
