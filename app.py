@@ -2,7 +2,6 @@ import asyncio
 
 import gradio as gr
 from agents import Runner
-
 from agents_factory import (
     sales_agent1,
     sales_agent2,
@@ -18,16 +17,38 @@ from config import (
     DRAFT_LINES,
     EMAIL_GENERATED_STATUS,
     EXPLANATION_LINES,
+    GENERATION_FAILED_STATUS,
+    MISSING_INPUT_STATUS,
     NO_EMAIL_TO_SEND_STATUS,
     PRODUCT_CONTEXT_LINES,
     RECEIVER_EMAIL_CHOICES,
+    SEND_FAILED_STATUS,
     STATUS_LINES,
 )
+from errors import user_message
 from messages import (
     email_generation_message,
     picker_input_message,
     send_email_message,
 )
+
+
+def _missing_fields(**fields: str | None) -> list[str]:
+    labels = {
+        "recipient_title": "recipient / greeting",
+        "product_context": "product context",
+        "receiver_email": "receiver email",
+    }
+    return [
+        labels[name]
+        for name, value in fields.items()
+        if not value or not str(value).strip()
+    ]
+
+
+def _generation_error_result(error: str):
+    status = GENERATION_FAILED_STATUS.format(error=error)
+    return ("", "", "", "", "", "", status)
 
 
 # -----------------------------
@@ -39,37 +60,54 @@ async def generate_emails(
     recipient_title,
     product_context,
 ):
-    message = email_generation_message(recipient_title, product_context)
-
-    results = await asyncio.gather(
-        Runner.run(sales_agent1, message),
-        Runner.run(sales_agent2, message),
-        Runner.run(sales_agent3, message),
+    missing = _missing_fields(
+        recipient_title=recipient_title,
+        product_context=product_context,
     )
+    if missing:
+        return _generation_error_result(
+            MISSING_INPUT_STATUS.format(fields=", ".join(missing))
+        )
 
-    draft_1 = results[0].final_output
-    draft_2 = results[1].final_output
-    draft_3 = results[2].final_output
+    try:
+        message = email_generation_message(recipient_title, product_context)
 
-    picker_input = picker_input_message(draft_1, draft_2, draft_3)
+        results = await asyncio.gather(
+            Runner.run(sales_agent1, message),
+            Runner.run(sales_agent2, message),
+            Runner.run(sales_agent3, message),
+        )
 
-    best = await Runner.run(sales_picker, picker_input)
+        draft_1 = results[0].final_output
+        draft_2 = results[1].final_output
+        draft_3 = results[2].final_output
 
-    selection = best.final_output
-    explanation = selection.explanation
-    selected_email = selection.selected_email
+        picker_input = picker_input_message(draft_1, draft_2, draft_3)
 
-    status = EMAIL_GENERATED_STATUS
+        best = await Runner.run(sales_picker, picker_input)
 
-    return (
-        draft_1,
-        draft_2,
-        draft_3,
-        explanation,
-        selected_email,
-        selected_email,
-        status,
-    )
+        selection = best.final_output
+        explanation = selection.explanation.strip()
+        selected_email = selection.selected_email.strip()
+
+        if not explanation or not selected_email:
+            return _generation_error_result(
+                "The picker returned an incomplete selection."
+            )
+
+        status = EMAIL_GENERATED_STATUS
+
+        return (
+            draft_1,
+            draft_2,
+            draft_3,
+            explanation,
+            selected_email,
+            selected_email,
+            status,
+        )
+    except Exception as exc:
+        return _generation_error_result(user_message(exc))
 
 
 def gradio_generate(
@@ -94,14 +132,23 @@ async def send_selected_email(
     receiver_email,
     selected_email,
 ):
+    missing = _missing_fields(
+        receiver_email=receiver_email,
+    )
+    if missing:
+        return MISSING_INPUT_STATUS.format(fields=", ".join(missing))
+
     if not selected_email or not selected_email.strip():
         return NO_EMAIL_TO_SEND_STATUS
 
-    message = send_email_message(receiver_email, selected_email)
+    try:
+        message = send_email_message(receiver_email, selected_email)
 
-    await Runner.run(send_manager, message)
+        await Runner.run(send_manager, message)
 
-    return f"Email sent to {receiver_email}"
+        return f"Email sent to {receiver_email}"
+    except Exception as exc:
+        return SEND_FAILED_STATUS.format(error=user_message(exc))
 
 
 def gradio_send(

@@ -20,6 +20,10 @@ EMAIL_GENERATED_STATUS = (
 )
 NO_EMAIL_TO_SEND_STATUS = "No selected email to send yet. Generate emails first."
 
+GENERATION_FAILED_STATUS = "Failed to generate emails: {error}"
+SEND_FAILED_STATUS = "Failed to send email: {error}"
+MISSING_INPUT_STATUS = "Please provide: {fields}"
+
 PRODUCT_CONTEXT_LINES = 4
 DRAFT_LINES = 14
 EXPLANATION_LINES = 4
