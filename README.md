@@ -1,3 +1,14 @@
+---
+title: AI Sales Agent
+emoji: 🤖
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: 5.34.2
+app_file: app.py
+pinned: false
+---
+
 # AI Sales Agent
 
 A small multi-agent AI sales email project.
