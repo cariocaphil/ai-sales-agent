@@ -1,130 +1,54 @@
-import os
 import asyncio
+
 import gradio as gr
-import sendgrid
-
-from dotenv import load_dotenv
-from sendgrid.helpers.mail import Mail, Email, To, Content
-from agents import Agent, Runner, function_tool
-
-load_dotenv()
-
-FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL")
-
-
-# -----------------------------
-# Sales agents
-# -----------------------------
-
-instructions1 = """
-You are a professional sales agent working for SynthPilot,
-a fictional AI product that helps software teams automatically analyze user feedback,
-detect product pain points, and generate prioritized feature recommendations.
-
-You write professional, serious cold emails.
-"""
-
-instructions2 = """
-You are a humorous, engaging sales agent working for SynthPilot,
-a fictional AI product that helps software teams automatically analyze user feedback,
-detect product pain points, and generate prioritized feature recommendations.
-
-You write witty, engaging cold emails that are likely to get a response.
-"""
-
-instructions3 = """
-You are a busy sales agent working for SynthPilot,
-a fictional AI product that helps software teams automatically analyze user feedback,
-detect product pain points, and generate prioritized feature recommendations.
-
-You write concise, to-the-point cold emails.
-"""
-
-
-sales_agent1 = Agent(
-    name="Professional Sales Agent",
-    instructions=instructions1,
-    model="gpt-4o-mini",
+from agents import Runner
+from agents_factory import (
+    sales_agent1,
+    sales_agent2,
+    sales_agent3,
+    sales_picker,
+    send_manager,
 )
-
-sales_agent2 = Agent(
-    name="Engaging Sales Agent",
-    instructions=instructions2,
-    model="gpt-4o-mini",
+from config import (
+    APP_TITLE,
+    DEFAULT_PRODUCT_CONTEXT,
+    DEFAULT_RECEIVER_EMAIL,
+    DEFAULT_RECIPIENT_TITLE,
+    DRAFT_LINES,
+    EMAIL_GENERATED_STATUS,
+    EXPLANATION_LINES,
+    GENERATION_FAILED_STATUS,
+    MISSING_INPUT_STATUS,
+    NO_EMAIL_TO_SEND_STATUS,
+    PRODUCT_CONTEXT_LINES,
+    RECEIVER_EMAIL_CHOICES,
+    SEND_FAILED_STATUS,
+    STATUS_LINES,
 )
-
-sales_agent3 = Agent(
-    name="Busy Sales Agent",
-    instructions=instructions3,
-    model="gpt-4o-mini",
-)
-
-sales_picker = Agent(
-    name="Sales Picker",
-    instructions="""
-You pick the best cold sales email from the given options.
-
-Imagine you are the customer and pick the one you would be most likely to respond to.
-
-Return your answer EXACTLY in this format:
-
-EXPLANATION:
-<short explanation>
-
-SELECTED_EMAIL:
-<full selected email>
-""",
-    model="gpt-4o-mini",
+from errors import user_message
+from messages import (
+    email_generation_message,
+    picker_input_message,
+    send_email_message,
 )
 
 
-# -----------------------------
-# Send email tool
-# -----------------------------
-
-@function_tool
-def send_email(body: str, receiver_email: str):
-    """Send out an approved email to the receiver email."""
-
-    sg = sendgrid.SendGridAPIClient(
-        api_key=os.environ.get("SENDGRID_API_KEY")
-    )
-
-    from_email = Email(FROM_EMAIL)
-    to_email = To(receiver_email)
-
-    content = Content("text/plain", body)
-
-    mail = Mail(
-        from_email,
-        to_email,
-        "Sales email",
-        content,
-    ).get()
-
-    sg.client.mail.send.post(request_body=mail)
-
-    return {
-        "status": "success",
-        "sent_to": receiver_email,
+def _missing_fields(**fields: str | None) -> list[str]:
+    labels = {
+        "recipient_title": "recipient / greeting",
+        "product_context": "product context",
+        "receiver_email": "receiver email",
     }
+    return [
+        labels[name]
+        for name, value in fields.items()
+        if not value or not str(value).strip()
+    ]
 
 
-send_manager = Agent(
-    name="Send Manager",
-    instructions="""
-You are responsible only for sending an already approved sales email.
-
-Rules:
-- Do not rewrite the email.
-- Do not improve the email.
-- Do not generate a new email.
-- Send exactly the approved email provided to you.
-- Use the send_email tool.
-""",
-    tools=[send_email],
-    model="gpt-4o-mini",
-)
+def _generation_error_result(error: str):
+    status = GENERATION_FAILED_STATUS.format(error=error)
+    return ("", "", "", "", "", "", status)
 
 
 # -----------------------------
@@ -136,55 +60,54 @@ async def generate_emails(
     recipient_title,
     product_context,
 ):
-    message = f"""
-Write a cold sales email addressed to: {recipient_title}
-
-Product context:
-{product_context}
-"""
-
-    results = await asyncio.gather(
-        Runner.run(sales_agent1, message),
-        Runner.run(sales_agent2, message),
-        Runner.run(sales_agent3, message),
+    missing = _missing_fields(
+        recipient_title=recipient_title,
+        product_context=product_context,
     )
+    if missing:
+        return _generation_error_result(
+            MISSING_INPUT_STATUS.format(fields=", ".join(missing))
+        )
 
-    draft_1 = results[0].final_output
-    draft_2 = results[1].final_output
-    draft_3 = results[2].final_output
+    try:
+        message = email_generation_message(recipient_title, product_context)
 
-    picker_input = f"""
-Cold sales emails:
+        results = await asyncio.gather(
+            Runner.run(sales_agent1, message),
+            Runner.run(sales_agent2, message),
+            Runner.run(sales_agent3, message),
+        )
 
-Email 1:
-{draft_1}
+        draft_1 = results[0].final_output
+        draft_2 = results[1].final_output
+        draft_3 = results[2].final_output
 
-Email 2:
-{draft_2}
+        picker_input = picker_input_message(draft_1, draft_2, draft_3)
 
-Email 3:
-{draft_3}
-"""
+        best = await Runner.run(sales_picker, picker_input)
 
-    best = await Runner.run(sales_picker, picker_input)
+        selection = best.final_output
+        explanation = selection.explanation.strip()
+        selected_email = selection.selected_email.strip()
 
-    selected_response = best.final_output
-    parts = selected_response.split("SELECTED_EMAIL:")
+        if not explanation or not selected_email:
+            return _generation_error_result(
+                "The picker returned an incomplete selection."
+            )
 
-    explanation = parts[0].replace("EXPLANATION:", "").strip()
-    selected_email = parts[1].strip()
+        status = EMAIL_GENERATED_STATUS
 
-    status = "Email generated and selected. Review it, then click Send Selected Email."
-
-    return (
-        draft_1,
-        draft_2,
-        draft_3,
-        explanation,
-        selected_email,
-        selected_email,
-        status,
-    )
+        return (
+            draft_1,
+            draft_2,
+            draft_3,
+            explanation,
+            selected_email,
+            selected_email,
+            status,
+        )
+    except Exception as exc:
+        return _generation_error_result(user_message(exc))
 
 
 def gradio_generate(
@@ -209,22 +132,23 @@ async def send_selected_email(
     receiver_email,
     selected_email,
 ):
+    missing = _missing_fields(
+        receiver_email=receiver_email,
+    )
+    if missing:
+        return MISSING_INPUT_STATUS.format(fields=", ".join(missing))
+
     if not selected_email or not selected_email.strip():
-        return "No selected email to send yet. Generate emails first."
+        return NO_EMAIL_TO_SEND_STATUS
 
-    message = f"""
-Send this approved email exactly as written.
+    try:
+        message = send_email_message(receiver_email, selected_email)
 
-Receiver email:
-{receiver_email}
+        await Runner.run(send_manager, message)
 
-Approved email:
-{selected_email}
-"""
-
-    await Runner.run(send_manager, message)
-
-    return f"Email sent to {receiver_email}"
+        return f"Email sent to {receiver_email}"
+    except Exception as exc:
+        return SEND_FAILED_STATUS.format(error=user_message(exc))
 
 
 def gradio_send(
@@ -243,10 +167,10 @@ def gradio_send(
 # Gradio UI
 # -----------------------------
 
-with gr.Blocks(title="AI Sales Agent") as demo:
+with gr.Blocks(title=APP_TITLE) as demo:
     selected_email_state = gr.State("")
 
-    gr.Markdown("# AI Sales Agent")
+    gr.Markdown(f"# {APP_TITLE}")
 
     gr.Markdown(
         """
@@ -258,24 +182,20 @@ review the result, and then manually confirm sending.
     with gr.Row():
         receiver_email = gr.Dropdown(
             label="Receiver email",
-            choices=["cariocaphil@gmail.com"],
-            value="cariocaphil@gmail.com",
+            choices=RECEIVER_EMAIL_CHOICES,
+            value=DEFAULT_RECEIVER_EMAIL,
             interactive=True,
         )
 
         recipient_title = gr.Textbox(
             label="Recipient / greeting",
-            value="Dear Product Leader",
+            value=DEFAULT_RECIPIENT_TITLE,
         )
 
     product_context = gr.Textbox(
         label="Product context",
-        value=(
-            "SynthPilot helps software teams analyze user feedback, "
-            "detect product pain points, and generate prioritized "
-            "feature recommendations."
-        ),
-        lines=4,
+        value=DEFAULT_PRODUCT_CONTEXT,
+        lines=PRODUCT_CONTEXT_LINES,
     )
 
     generate_button = gr.Button("Generate and Select Best Email")
@@ -285,36 +205,36 @@ review the result, and then manually confirm sending.
     with gr.Row():
         draft_1_output = gr.Textbox(
             label="Professional draft",
-            lines=14,
+            lines=DRAFT_LINES,
         )
 
         draft_2_output = gr.Textbox(
             label="Engaging draft",
-            lines=14,
+            lines=DRAFT_LINES,
         )
 
         draft_3_output = gr.Textbox(
             label="Concise draft",
-            lines=14,
+            lines=DRAFT_LINES,
         )
 
     gr.Markdown("## Selection Analysis")
 
     explanation_output = gr.Textbox(
         label="Why this email was selected",
-        lines=4,
+        lines=EXPLANATION_LINES,
     )
 
     selected_email_output = gr.Textbox(
         label="Best selected email",
-        lines=14,
+        lines=DRAFT_LINES,
     )
 
     send_button = gr.Button("Send Selected Email")
 
     status_output = gr.Textbox(
         label="Status",
-        lines=2,
+        lines=STATUS_LINES,
     )
 
     generate_button.click(
