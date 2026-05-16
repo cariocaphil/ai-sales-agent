@@ -15,10 +15,23 @@ DEFAULT_PRODUCT_CONTEXT = (
     "feature recommendations."
 )
 
-EMAIL_GENERATED_STATUS = (
-    "Email generated and selected. Review it, then click Send Selected Email."
+STEP1_READY_STATUS = (
+    "Step 1: Fill in the details below, then generate and review drafts."
 )
-NO_EMAIL_TO_SEND_STATUS = "No selected email to send yet. Generate emails first."
+GENERATING_STATUS = "Generating drafts and selecting the best email…"
+EMAIL_GENERATED_STATUS = (
+    "Step 1 complete. Review the selected email, then confirm sending in Step 2."
+)
+NO_EMAIL_TO_SEND_STATUS = (
+    "Step 2 unavailable: generate and review an email in Step 1 first."
+)
+INPUTS_CHANGED_STATUS = (
+    "Inputs changed. Complete Step 1 again before sending."
+)
+SEND_COMPLETE_STATUS = (
+    "Step 2 complete. Email sent to {receiver}. "
+    "Run Step 1 again to generate a new email."
+)
 
 GENERATION_FAILED_STATUS = "Failed to generate emails: {error}"
 SEND_FAILED_STATUS = "Failed to send email: {error}"
