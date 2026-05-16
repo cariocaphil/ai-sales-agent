@@ -18,12 +18,15 @@ from config import (
     EMAIL_GENERATED_STATUS,
     EXPLANATION_LINES,
     GENERATION_FAILED_STATUS,
+    INPUTS_CHANGED_STATUS,
     MISSING_INPUT_STATUS,
     NO_EMAIL_TO_SEND_STATUS,
     PRODUCT_CONTEXT_LINES,
     RECEIVER_EMAIL_CHOICES,
+    SEND_COMPLETE_STATUS,
     SEND_FAILED_STATUS,
     STATUS_LINES,
+    STEP1_READY_STATUS,
 )
 from errors import user_message
 from messages import (
@@ -46,9 +49,30 @@ def _missing_fields(**fields: str | None) -> list[str]:
     ]
 
 
+def _send_button_enabled(enabled: bool):
+    return gr.update(interactive=enabled)
+
+
 def _generation_error_result(error: str):
     status = GENERATION_FAILED_STATUS.format(error=error)
-    return ("", "", "", "", "", "", status)
+    return (
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        status,
+        _send_button_enabled(False),
+    )
+
+
+def reset_after_input_change():
+    return (
+        _send_button_enabled(False),
+        "",
+        INPUTS_CHANGED_STATUS,
+    )
 
 
 # -----------------------------
@@ -105,6 +129,7 @@ async def generate_emails(
             selected_email,
             selected_email,
             status,
+            _send_button_enabled(True),
         )
     except Exception as exc:
         return _generation_error_result(user_message(exc))
@@ -146,7 +171,7 @@ async def send_selected_email(
 
         await Runner.run(send_manager, message)
 
-        return f"Email sent to {receiver_email}"
+        return SEND_COMPLETE_STATUS.format(receiver=receiver_email)
     except Exception as exc:
         return SEND_FAILED_STATUS.format(error=user_message(exc))
 
@@ -155,12 +180,16 @@ def gradio_send(
     receiver_email,
     selected_email,
 ):
-    return asyncio.run(
+    status = asyncio.run(
         send_selected_email(
             receiver_email=receiver_email,
             selected_email=selected_email,
         )
     )
+    if status.startswith("Failed to send email:"):
+        return status, _send_button_enabled(True)
+
+    return status, _send_button_enabled(False)
 
 
 # -----------------------------
@@ -174,10 +203,14 @@ with gr.Blocks(title=APP_TITLE) as demo:
 
     gr.Markdown(
         """
-Generate three cold email drafts, let an AI picker choose the strongest one,
-review the result, and then manually confirm sending.
+**Two-step workflow**
+
+1. **Generate and review** — create three drafts, pick the best one, and review it.
+2. **Confirm sending** — send only after you are satisfied with the selected email.
 """
     )
+
+    gr.Markdown("## Step 1 — Generate and review")
 
     with gr.Row():
         receiver_email = gr.Dropdown(
@@ -198,9 +231,12 @@ review the result, and then manually confirm sending.
         lines=PRODUCT_CONTEXT_LINES,
     )
 
-    generate_button = gr.Button("Generate and Select Best Email")
+    generate_button = gr.Button(
+        "Generate and Select Best Email",
+        variant="primary",
+    )
 
-    gr.Markdown("## Drafts")
+    gr.Markdown("### Drafts")
 
     with gr.Row():
         draft_1_output = gr.Textbox(
@@ -218,7 +254,7 @@ review the result, and then manually confirm sending.
             lines=DRAFT_LINES,
         )
 
-    gr.Markdown("## Selection Analysis")
+    gr.Markdown("### Selection")
 
     explanation_output = gr.Textbox(
         label="Why this email was selected",
@@ -230,11 +266,18 @@ review the result, and then manually confirm sending.
         lines=DRAFT_LINES,
     )
 
-    send_button = gr.Button("Send Selected Email")
+    gr.Markdown("## Step 2 — Confirm sending")
+
+    send_button = gr.Button(
+        "Confirm Send",
+        interactive=False,
+    )
 
     status_output = gr.Textbox(
         label="Status",
+        value=STEP1_READY_STATUS,
         lines=STATUS_LINES,
+        interactive=False,
     )
 
     generate_button.click(
@@ -252,6 +295,7 @@ review the result, and then manually confirm sending.
             selected_email_output,
             selected_email_state,
             status_output,
+            send_button,
         ],
     )
 
@@ -263,8 +307,16 @@ review the result, and then manually confirm sending.
         ],
         outputs=[
             status_output,
+            send_button,
         ],
     )
+
+    for input_component in (receiver_email, recipient_title, product_context):
+        input_component.change(
+            fn=reset_after_input_change,
+            inputs=[],
+            outputs=[send_button, selected_email_state, status_output],
+        )
 
 
 if __name__ == "__main__":
