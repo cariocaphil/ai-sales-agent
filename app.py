@@ -1,12 +1,10 @@
-import os
 import asyncio
+
 import gradio as gr
-import sendgrid
-
 from dotenv import load_dotenv
-from sendgrid.helpers.mail import Mail, Email, To, Content
-from agents import Agent, Runner, function_tool
+from agents import Agent, Runner
 
+from email_service import send_manager
 from messages import (
     email_generation_message,
     picker_input_message,
@@ -17,12 +15,9 @@ from prompts import (
     ENGAGING_SALES_INSTRUCTIONS,
     PROFESSIONAL_SALES_INSTRUCTIONS,
     SALES_PICKER_INSTRUCTIONS,
-    SEND_MANAGER_INSTRUCTIONS,
 )
 
 load_dotenv()
-
-FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL")
 
 
 # -----------------------------
@@ -50,46 +45,6 @@ sales_agent3 = Agent(
 sales_picker = Agent(
     name="Sales Picker",
     instructions=SALES_PICKER_INSTRUCTIONS,
-    model="gpt-4o-mini",
-)
-
-
-# -----------------------------
-# Send email tool
-# -----------------------------
-
-@function_tool
-def send_email(body: str, receiver_email: str):
-    """Send out an approved email to the receiver email."""
-
-    sg = sendgrid.SendGridAPIClient(
-        api_key=os.environ.get("SENDGRID_API_KEY")
-    )
-
-    from_email = Email(FROM_EMAIL)
-    to_email = To(receiver_email)
-
-    content = Content("text/plain", body)
-
-    mail = Mail(
-        from_email,
-        to_email,
-        "Sales email",
-        content,
-    ).get()
-
-    sg.client.mail.send.post(request_body=mail)
-
-    return {
-        "status": "success",
-        "sent_to": receiver_email,
-    }
-
-
-send_manager = Agent(
-    name="Send Manager",
-    instructions=SEND_MANAGER_INSTRUCTIONS,
-    tools=[send_email],
     model="gpt-4o-mini",
 )
 
