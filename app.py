@@ -1,7 +1,6 @@
 import asyncio
 
 import gradio as gr
-from dotenv import load_dotenv
 from agents import Runner
 
 from agents_factory import (
@@ -11,13 +10,24 @@ from agents_factory import (
     sales_picker,
     send_manager,
 )
+from config import (
+    APP_TITLE,
+    DEFAULT_PRODUCT_CONTEXT,
+    DEFAULT_RECEIVER_EMAIL,
+    DEFAULT_RECIPIENT_TITLE,
+    DRAFT_LINES,
+    EMAIL_GENERATED_STATUS,
+    EXPLANATION_LINES,
+    NO_EMAIL_TO_SEND_STATUS,
+    PRODUCT_CONTEXT_LINES,
+    RECEIVER_EMAIL_CHOICES,
+    STATUS_LINES,
+)
 from messages import (
     email_generation_message,
     picker_input_message,
     send_email_message,
 )
-
-load_dotenv()
 
 
 # -----------------------------
@@ -51,7 +61,7 @@ async def generate_emails(
     explanation = parts[0].replace("EXPLANATION:", "").strip()
     selected_email = parts[1].strip()
 
-    status = "Email generated and selected. Review it, then click Send Selected Email."
+    status = EMAIL_GENERATED_STATUS
 
     return (
         draft_1,
@@ -87,7 +97,7 @@ async def send_selected_email(
     selected_email,
 ):
     if not selected_email or not selected_email.strip():
-        return "No selected email to send yet. Generate emails first."
+        return NO_EMAIL_TO_SEND_STATUS
 
     message = send_email_message(receiver_email, selected_email)
 
@@ -112,10 +122,10 @@ def gradio_send(
 # Gradio UI
 # -----------------------------
 
-with gr.Blocks(title="AI Sales Agent") as demo:
+with gr.Blocks(title=APP_TITLE) as demo:
     selected_email_state = gr.State("")
 
-    gr.Markdown("# AI Sales Agent")
+    gr.Markdown(f"# {APP_TITLE}")
 
     gr.Markdown(
         """
@@ -127,24 +137,20 @@ review the result, and then manually confirm sending.
     with gr.Row():
         receiver_email = gr.Dropdown(
             label="Receiver email",
-            choices=["cariocaphil@gmail.com"],
-            value="cariocaphil@gmail.com",
+            choices=RECEIVER_EMAIL_CHOICES,
+            value=DEFAULT_RECEIVER_EMAIL,
             interactive=True,
         )
 
         recipient_title = gr.Textbox(
             label="Recipient / greeting",
-            value="Dear Product Leader",
+            value=DEFAULT_RECIPIENT_TITLE,
         )
 
     product_context = gr.Textbox(
         label="Product context",
-        value=(
-            "SynthPilot helps software teams analyze user feedback, "
-            "detect product pain points, and generate prioritized "
-            "feature recommendations."
-        ),
-        lines=4,
+        value=DEFAULT_PRODUCT_CONTEXT,
+        lines=PRODUCT_CONTEXT_LINES,
     )
 
     generate_button = gr.Button("Generate and Select Best Email")
@@ -154,36 +160,36 @@ review the result, and then manually confirm sending.
     with gr.Row():
         draft_1_output = gr.Textbox(
             label="Professional draft",
-            lines=14,
+            lines=DRAFT_LINES,
         )
 
         draft_2_output = gr.Textbox(
             label="Engaging draft",
-            lines=14,
+            lines=DRAFT_LINES,
         )
 
         draft_3_output = gr.Textbox(
             label="Concise draft",
-            lines=14,
+            lines=DRAFT_LINES,
         )
 
     gr.Markdown("## Selection Analysis")
 
     explanation_output = gr.Textbox(
         label="Why this email was selected",
-        lines=4,
+        lines=EXPLANATION_LINES,
     )
 
     selected_email_output = gr.Textbox(
         label="Best selected email",
-        lines=14,
+        lines=DRAFT_LINES,
     )
 
     send_button = gr.Button("Send Selected Email")
 
     status_output = gr.Textbox(
         label="Status",
-        lines=2,
+        lines=STATUS_LINES,
     )
 
     generate_button.click(
