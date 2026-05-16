@@ -242,16 +242,19 @@ with gr.Blocks(title=APP_TITLE) as demo:
         draft_1_output = gr.Textbox(
             label="Professional draft",
             lines=DRAFT_LINES,
+            interactive=False,
         )
 
         draft_2_output = gr.Textbox(
             label="Engaging draft",
             lines=DRAFT_LINES,
+            interactive=False,
         )
 
         draft_3_output = gr.Textbox(
             label="Concise draft",
             lines=DRAFT_LINES,
+            interactive=False,
         )
 
     gr.Markdown("### Selection")
@@ -259,11 +262,13 @@ with gr.Blocks(title=APP_TITLE) as demo:
     explanation_output = gr.Textbox(
         label="Why this email was selected",
         lines=EXPLANATION_LINES,
+        interactive=False,
     )
 
     selected_email_output = gr.Textbox(
         label="Best selected email",
         lines=DRAFT_LINES,
+        interactive=False,
     )
 
     gr.Markdown("## Step 2 — Confirm sending")
