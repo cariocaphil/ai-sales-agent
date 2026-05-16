@@ -7,6 +7,19 @@ from dotenv import load_dotenv
 from sendgrid.helpers.mail import Mail, Email, To, Content
 from agents import Agent, Runner, function_tool
 
+from messages import (
+    email_generation_message,
+    picker_input_message,
+    send_email_message,
+)
+from prompts import (
+    CONCISE_SALES_INSTRUCTIONS,
+    ENGAGING_SALES_INSTRUCTIONS,
+    PROFESSIONAL_SALES_INSTRUCTIONS,
+    SALES_PICKER_INSTRUCTIONS,
+    SEND_MANAGER_INSTRUCTIONS,
+)
+
 load_dotenv()
 
 FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL")
@@ -16,64 +29,27 @@ FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL")
 # Sales agents
 # -----------------------------
 
-instructions1 = """
-You are a professional sales agent working for SynthPilot,
-a fictional AI product that helps software teams automatically analyze user feedback,
-detect product pain points, and generate prioritized feature recommendations.
-
-You write professional, serious cold emails.
-"""
-
-instructions2 = """
-You are a humorous, engaging sales agent working for SynthPilot,
-a fictional AI product that helps software teams automatically analyze user feedback,
-detect product pain points, and generate prioritized feature recommendations.
-
-You write witty, engaging cold emails that are likely to get a response.
-"""
-
-instructions3 = """
-You are a busy sales agent working for SynthPilot,
-a fictional AI product that helps software teams automatically analyze user feedback,
-detect product pain points, and generate prioritized feature recommendations.
-
-You write concise, to-the-point cold emails.
-"""
-
-
 sales_agent1 = Agent(
     name="Professional Sales Agent",
-    instructions=instructions1,
+    instructions=PROFESSIONAL_SALES_INSTRUCTIONS,
     model="gpt-4o-mini",
 )
 
 sales_agent2 = Agent(
     name="Engaging Sales Agent",
-    instructions=instructions2,
+    instructions=ENGAGING_SALES_INSTRUCTIONS,
     model="gpt-4o-mini",
 )
 
 sales_agent3 = Agent(
     name="Busy Sales Agent",
-    instructions=instructions3,
+    instructions=CONCISE_SALES_INSTRUCTIONS,
     model="gpt-4o-mini",
 )
 
 sales_picker = Agent(
     name="Sales Picker",
-    instructions="""
-You pick the best cold sales email from the given options.
-
-Imagine you are the customer and pick the one you would be most likely to respond to.
-
-Return your answer EXACTLY in this format:
-
-EXPLANATION:
-<short explanation>
-
-SELECTED_EMAIL:
-<full selected email>
-""",
+    instructions=SALES_PICKER_INSTRUCTIONS,
     model="gpt-4o-mini",
 )
 
@@ -112,16 +88,7 @@ def send_email(body: str, receiver_email: str):
 
 send_manager = Agent(
     name="Send Manager",
-    instructions="""
-You are responsible only for sending an already approved sales email.
-
-Rules:
-- Do not rewrite the email.
-- Do not improve the email.
-- Do not generate a new email.
-- Send exactly the approved email provided to you.
-- Use the send_email tool.
-""",
+    instructions=SEND_MANAGER_INSTRUCTIONS,
     tools=[send_email],
     model="gpt-4o-mini",
 )
@@ -136,12 +103,7 @@ async def generate_emails(
     recipient_title,
     product_context,
 ):
-    message = f"""
-Write a cold sales email addressed to: {recipient_title}
-
-Product context:
-{product_context}
-"""
+    message = email_generation_message(recipient_title, product_context)
 
     results = await asyncio.gather(
         Runner.run(sales_agent1, message),
@@ -153,18 +115,7 @@ Product context:
     draft_2 = results[1].final_output
     draft_3 = results[2].final_output
 
-    picker_input = f"""
-Cold sales emails:
-
-Email 1:
-{draft_1}
-
-Email 2:
-{draft_2}
-
-Email 3:
-{draft_3}
-"""
+    picker_input = picker_input_message(draft_1, draft_2, draft_3)
 
     best = await Runner.run(sales_picker, picker_input)
 
@@ -212,15 +163,7 @@ async def send_selected_email(
     if not selected_email or not selected_email.strip():
         return "No selected email to send yet. Generate emails first."
 
-    message = f"""
-Send this approved email exactly as written.
-
-Receiver email:
-{receiver_email}
-
-Approved email:
-{selected_email}
-"""
+    message = send_email_message(receiver_email, selected_email)
 
     await Runner.run(send_manager, message)
 
