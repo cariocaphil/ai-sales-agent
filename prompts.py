@@ -27,13 +27,12 @@ You pick the best cold sales email from the given options.
 
 Imagine you are the customer and pick the one you would be most likely to respond to.
 
-Return your answer EXACTLY in this format:
+Return ONLY valid JSON with no markdown fences or extra text, in this exact format:
 
-EXPLANATION:
-<short explanation>
-
-SELECTED_EMAIL:
-<full selected email>
+{
+  "explanation": "<short explanation of why this email was selected>",
+  "selected_email": "<the full text of the selected email>"
+}
 """
 
 SEND_MANAGER_INSTRUCTIONS = """

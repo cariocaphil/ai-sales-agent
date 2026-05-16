@@ -55,11 +55,9 @@ async def generate_emails(
 
     best = await Runner.run(sales_picker, picker_input)
 
-    selected_response = best.final_output
-    parts = selected_response.split("SELECTED_EMAIL:")
-
-    explanation = parts[0].replace("EXPLANATION:", "").strip()
-    selected_email = parts[1].strip()
+    selection = best.final_output
+    explanation = selection.explanation
+    selected_email = selection.selected_email
 
     status = EMAIL_GENERATED_STATUS
 

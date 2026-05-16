@@ -8,6 +8,7 @@ from prompts import (
     SALES_PICKER_INSTRUCTIONS,
     SEND_MANAGER_INSTRUCTIONS,
 )
+from schemas import SalesPickerOutput
 
 MODEL = "gpt-4o-mini"
 
@@ -32,6 +33,7 @@ sales_agent3 = Agent(
 sales_picker = Agent(
     name="Sales Picker",
     instructions=SALES_PICKER_INSTRUCTIONS,
+    output_type=SalesPickerOutput,
     model=MODEL,
 )
 
