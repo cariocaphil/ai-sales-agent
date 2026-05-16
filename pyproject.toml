@@ -10,6 +10,7 @@ dependencies = [
     "openai-agents>=0.0.14",
     "sendgrid>=6.11.0",
     "python-dotenv>=1.0.1",
+    "gradio>=6.14.0",
 ]
 
 [dependency-groups]
