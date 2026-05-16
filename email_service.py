@@ -3,9 +3,7 @@ import os
 import sendgrid
 from dotenv import load_dotenv
 from sendgrid.helpers.mail import Content, Email, Mail, To
-from agents import Agent, function_tool
-
-from prompts import SEND_MANAGER_INSTRUCTIONS
+from agents import function_tool
 
 load_dotenv()
 
@@ -38,11 +36,3 @@ def send_email(body: str, receiver_email: str):
         "status": "success",
         "sent_to": receiver_email,
     }
-
-
-send_manager = Agent(
-    name="Send Manager",
-    instructions=SEND_MANAGER_INSTRUCTIONS,
-    tools=[send_email],
-    model="gpt-4o-mini",
-)

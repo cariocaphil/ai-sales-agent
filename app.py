@@ -2,51 +2,22 @@ import asyncio
 
 import gradio as gr
 from dotenv import load_dotenv
-from agents import Agent, Runner
+from agents import Runner
 
-from email_service import send_manager
+from agents_factory import (
+    sales_agent1,
+    sales_agent2,
+    sales_agent3,
+    sales_picker,
+    send_manager,
+)
 from messages import (
     email_generation_message,
     picker_input_message,
     send_email_message,
 )
-from prompts import (
-    CONCISE_SALES_INSTRUCTIONS,
-    ENGAGING_SALES_INSTRUCTIONS,
-    PROFESSIONAL_SALES_INSTRUCTIONS,
-    SALES_PICKER_INSTRUCTIONS,
-)
 
 load_dotenv()
-
-
-# -----------------------------
-# Sales agents
-# -----------------------------
-
-sales_agent1 = Agent(
-    name="Professional Sales Agent",
-    instructions=PROFESSIONAL_SALES_INSTRUCTIONS,
-    model="gpt-4o-mini",
-)
-
-sales_agent2 = Agent(
-    name="Engaging Sales Agent",
-    instructions=ENGAGING_SALES_INSTRUCTIONS,
-    model="gpt-4o-mini",
-)
-
-sales_agent3 = Agent(
-    name="Busy Sales Agent",
-    instructions=CONCISE_SALES_INSTRUCTIONS,
-    model="gpt-4o-mini",
-)
-
-sales_picker = Agent(
-    name="Sales Picker",
-    instructions=SALES_PICKER_INSTRUCTIONS,
-    model="gpt-4o-mini",
-)
 
 
 # -----------------------------
