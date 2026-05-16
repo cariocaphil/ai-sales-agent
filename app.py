@@ -17,6 +17,7 @@ from config import (
     DRAFT_LINES,
     EMAIL_GENERATED_STATUS,
     EXPLANATION_LINES,
+    GENERATING_STATUS,
     GENERATION_FAILED_STATUS,
     INPUTS_CHANGED_STATUS,
     MISSING_INPUT_STATUS,
@@ -72,6 +73,14 @@ def reset_after_input_change():
         _send_button_enabled(False),
         "",
         INPUTS_CHANGED_STATUS,
+    )
+
+
+def prepare_generation():
+    return (
+        _send_button_enabled(False),
+        "",
+        GENERATING_STATUS,
     )
 
 
@@ -285,7 +294,12 @@ with gr.Blocks(title=APP_TITLE) as demo:
         interactive=False,
     )
 
-    generate_button.click(
+    generate_event = generate_button.click(
+        fn=prepare_generation,
+        inputs=[],
+        outputs=[send_button, selected_email_state, status_output],
+    )
+    generate_event.then(
         fn=gradio_generate,
         inputs=[
             receiver_email,

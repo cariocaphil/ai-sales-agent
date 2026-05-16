@@ -18,6 +18,7 @@ DEFAULT_PRODUCT_CONTEXT = (
 STEP1_READY_STATUS = (
     "Step 1: Fill in the details below, then generate and review drafts."
 )
+GENERATING_STATUS = "Generating drafts and selecting the best email…"
 EMAIL_GENERATED_STATUS = (
     "Step 1 complete. Review the selected email, then confirm sending in Step 2."
 )
