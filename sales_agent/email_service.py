@@ -1,13 +1,10 @@
 import os
 
 import sendgrid
-from dotenv import load_dotenv
 from sendgrid.helpers.mail import Content, Email, Mail, To
 from agents import function_tool
 
-from errors import ConfigurationError, EmailSendError
-
-load_dotenv()
+from sales_agent.errors import ConfigurationError, EmailSendError
 
 
 def _from_email() -> str | None:

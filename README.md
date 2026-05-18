@@ -4,100 +4,120 @@ emoji: 🤖
 colorFrom: blue
 colorTo: indigo
 sdk: gradio
-sdk_version: 5.34.2
+sdk_version: 6.14.0
 app_file: app.py
 pinned: false
 ---
 
 # AI Sales Agent
 
-A multi-agent AI outbound workflow application built with:
+A multi-agent outbound email workflow built with the OpenAI Agents SDK, Gradio, and SendGrid.
 
-- OpenAI Agents SDK
-- Gradio
-- SendGrid
-- Python
-- uv
+Three sales agents draft competing cold emails, a picker agent selects the best one with structured JSON output, and a send manager delivers the human-approved message after explicit confirmation.
 
-The application simulates a small AI sales organization:
-three specialized sales agents generate competing cold outreach emails, an AI evaluation agent selects the strongest version and explains its reasoning, and a separate sending agent executes the approved email after human confirmation.
+## Features
 
----
-
-# Features
-
-## Multi-Agent Workflow
-
-The app contains several cooperating AI agents:
+### Multi-agent workflow
 
 | Agent | Responsibility |
-|---|---|
-| Professional Sales Agent | Writes enterprise-style outreach |
-| Engaging Sales Agent | Writes witty/high-engagement outreach |
-| Busy Sales Agent | Writes concise outreach |
-| Sales Picker Agent | Evaluates drafts and selects the strongest email |
-| Send Manager Agent | Sends the approved email via SendGrid |
+| --- | --- |
+| Professional Sales Agent | Enterprise-style outreach |
+| Engaging Sales Agent | Witty, high-engagement outreach |
+| Busy Sales Agent | Concise outreach |
+| Sales Picker | Chooses the strongest draft and explains why |
+| Send Manager | Sends the approved email via SendGrid |
 
----
+### Two-step UI
 
-## Human-in-the-Loop Approval
-
-The workflow intentionally separates:
-
-1. AI generation
-2. AI evaluation
-3. Human review
-4. Final AI execution
+1. **Generate and review** — create drafts, view the picker’s choice and reasoning.
+2. **Confirm sending** — send is disabled until generation succeeds; inputs changes invalidate the prior selection.
 
 The email is **not sent automatically** after generation.
-The user must explicitly confirm the send action.
 
-This mirrors real-world enterprise AI workflow patterns.
+### Product context
 
----
+The demo product is **SynthPilot**, a fictional platform for analyzing user feedback and prioritizing features. Agent instructions define the baseline product; the **Product context** field in the UI adds run-specific detail for each generation.
 
-## UI
+## Project structure
 
-Built with Gradio.
+```
+ai-sales-agent/
+├── app.py                 # Gradio entrypoint (demo.launch)
+├── sales_agent/
+│   ├── agents_factory.py  # Lazy agent creation (AgentsBundle)
+│   ├── config.py          # App constants and status messages
+│   ├── email_service.py   # SendGrid delivery
+│   ├── errors.py          # User-facing error helpers
+│   ├── flows.py           # Generation and send orchestration
+│   ├── messages.py        # Per-run prompt templates
+│   ├── prompts.py         # Agent system instructions
+│   ├── runner.py          # Injectable AgentRunner (Runner.run)
+│   ├── schemas.py         # Pydantic models (SalesPickerOutput, GenerationResult)
+│   └── ui.py              # Gradio layout and callbacks
+└── tests/                 # pytest suite (mocked agents + SendGrid)
+```
 
-The interface allows users to:
+## Requirements
 
-- Generate 3 competing cold email drafts
-- Review all generated drafts
-- View AI reasoning for the selected email
-- Review the final selected email
-- Manually confirm sending
-- Send the approved email via SendGrid
+- Python 3.11+
+- [uv](https://github.com/astral-sh/uv) (recommended)
 
----
+## Setup
 
-# Product
-
-The demo product is **SynthPilot**,
-a fictional AI platform that helps software teams:
-
-- analyze user feedback
-- detect product pain points
-- generate prioritized feature recommendations
-
----
-
-# Tech Stack
-
-- Python
-- OpenAI Agents SDK
-- Gradio
-- SendGrid
-- asyncio
-- uv
-
----
-
-# Setup
-
-## Install uv
-
-Mac:
+### 1. Install dependencies
 
 ```bash
-brew install uv
+uv sync
+```
+
+For development (includes pytest):
+
+```bash
+uv sync --group dev
+```
+
+### 2. Configure environment
+
+Create a `.env` file in the project root:
+
+```env
+OPENAI_API_KEY=your-openai-api-key
+SENDGRID_API_KEY=your-sendgrid-api-key
+SENDGRID_FROM_EMAIL=verified-sender@yourdomain.com
+```
+
+| Variable | Purpose |
+| --- | --- |
+| `OPENAI_API_KEY` | Used by the OpenAI Agents SDK |
+| `SENDGRID_API_KEY` | SendGrid API key for outbound mail |
+| `SENDGRID_FROM_EMAIL` | Verified sender address in SendGrid |
+
+### 3. Run the app
+
+```bash
+uv run python app.py
+```
+
+Or:
+
+```bash
+uv run gradio app.py
+```
+
+## Testing
+
+```bash
+uv run pytest
+```
+
+Tests mock agent runs (`AgentRunner` injection) and SendGrid; no live API calls are required.
+
+## Tech stack
+
+- Python 3.11+
+- OpenAI Agents SDK
+- Gradio 6
+- SendGrid
+- Pydantic
+- pytest / pytest-asyncio
+- uv

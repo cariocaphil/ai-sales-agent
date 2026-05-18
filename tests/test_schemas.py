@@ -3,7 +3,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from schemas import SalesPickerOutput
+from sales_agent.schemas import GenerationResult, SalesPickerOutput
 from tests.conftest import parse_json_output
 
 
@@ -43,6 +43,28 @@ def test_parse_json_output_helper():
 
     assert isinstance(result, SalesPickerOutput)
     assert result.selected_email == "Hello there"
+
+
+def test_generation_result_to_gradio_tuple_duplicates_selected_email():
+    result = GenerationResult(
+        draft_1="d1",
+        draft_2="d2",
+        draft_3="d3",
+        explanation="because",
+        selected_email="email body",
+        status="ok",
+        ready_to_send=True,
+    )
+
+    assert result.to_gradio_tuple() == (
+        "d1",
+        "d2",
+        "d3",
+        "because",
+        "email body",
+        "email body",
+        "ok",
+    )
 
 
 def test_sales_picker_output_strips_are_applied_in_flow_not_schema():

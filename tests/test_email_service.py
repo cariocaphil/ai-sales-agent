@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from email_service import _require_sendgrid_config, deliver_email
-from errors import ConfigurationError, EmailSendError
+from sales_agent.email_service import _from_email, _require_sendgrid_config, deliver_email
+from sales_agent.errors import ConfigurationError, EmailSendError
 
 
 def test_require_sendgrid_config_missing_api_key(monkeypatch):
@@ -24,8 +24,6 @@ def test_require_sendgrid_config_missing_from_email(monkeypatch):
 
 def test_from_email_reads_environment_at_call_time(monkeypatch):
     monkeypatch.setenv("SENDGRID_FROM_EMAIL", "runtime@example.com")
-
-    from email_service import _from_email
 
     assert _from_email() == "runtime@example.com"
 
@@ -63,7 +61,7 @@ def test_deliver_email_raises_on_sendgrid_http_error(sendgrid_env, monkeypatch):
     mock_sg = MagicMock()
     mock_sg.client = mock_client
     monkeypatch.setattr(
-        "email_service.sendgrid.SendGridAPIClient",
+        "sales_agent.email_service.sendgrid.SendGridAPIClient",
         MagicMock(return_value=mock_sg),
     )
 
@@ -73,7 +71,7 @@ def test_deliver_email_raises_on_sendgrid_http_error(sendgrid_env, monkeypatch):
 
 def test_deliver_email_wraps_unexpected_sendgrid_errors(sendgrid_env, monkeypatch):
     monkeypatch.setattr(
-        "email_service.sendgrid.SendGridAPIClient",
+        "sales_agent.email_service.sendgrid.SendGridAPIClient",
         MagicMock(side_effect=RuntimeError("network down")),
     )
 

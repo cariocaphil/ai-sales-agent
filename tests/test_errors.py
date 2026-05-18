@@ -2,8 +2,8 @@ import pytest
 from agents.exceptions import AgentsException, ModelBehaviorError
 from pydantic import ValidationError
 
-from errors import ConfigurationError, user_message
-from schemas import SalesPickerOutput
+from sales_agent.errors import ConfigurationError, user_message
+from sales_agent.schemas import SalesPickerOutput
 
 
 def test_user_message_returns_app_error_text():
