@@ -62,3 +62,15 @@ def mock_sendgrid_client(monkeypatch):
 
 def parse_json_output(raw: str) -> SalesPickerOutput:
     return SalesPickerOutput.model_validate(json.loads(raw))
+
+
+class FakeAgentRunner:
+    """Injected test double for AgentRunner."""
+
+    def __init__(self, run_impl):
+        self._run_impl = run_impl
+        self.calls: list[tuple] = []
+
+    async def run(self, agent, message):
+        self.calls.append((agent, message))
+        return await self._run_impl(agent, message)

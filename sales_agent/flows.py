@@ -1,7 +1,5 @@
 import asyncio
 
-from agents import Runner
-
 from sales_agent.agents_factory import get_agents
 from sales_agent.config import (
     EMAIL_GENERATED_STATUS,
@@ -17,6 +15,7 @@ from sales_agent.messages import (
     picker_input_message,
     send_email_message,
 )
+from sales_agent.runner import AgentRunner, default_runner
 from sales_agent.schemas import GenerationResult
 
 
@@ -43,6 +42,8 @@ async def generate_emails(
     receiver_email,
     recipient_title,
     product_context,
+    *,
+    runner: AgentRunner | None = None,
 ):
     missing = missing_fields(
         recipient_title=recipient_title,
@@ -53,14 +54,16 @@ async def generate_emails(
             MISSING_INPUT_STATUS.format(fields=", ".join(missing))
         )
 
+    agent_runner = runner or default_runner
+
     try:
         agents = get_agents()
         message = email_generation_message(recipient_title, product_context)
 
         results = await asyncio.gather(
-            Runner.run(agents.professional, message),
-            Runner.run(agents.engaging, message),
-            Runner.run(agents.concise, message),
+            agent_runner.run(agents.professional, message),
+            agent_runner.run(agents.engaging, message),
+            agent_runner.run(agents.concise, message),
         )
 
         draft_1 = results[0].final_output
@@ -69,7 +72,7 @@ async def generate_emails(
 
         picker_input = picker_input_message(draft_1, draft_2, draft_3)
 
-        best = await Runner.run(agents.picker, picker_input)
+        best = await agent_runner.run(agents.picker, picker_input)
 
         selection = best.final_output
         explanation = selection.explanation.strip()
@@ -96,6 +99,8 @@ async def generate_emails(
 async def send_selected_email(
     receiver_email,
     selected_email,
+    *,
+    runner: AgentRunner | None = None,
 ):
     missing = missing_fields(
         receiver_email=receiver_email,
@@ -106,11 +111,13 @@ async def send_selected_email(
     if not selected_email or not selected_email.strip():
         return NO_EMAIL_TO_SEND_STATUS
 
+    agent_runner = runner or default_runner
+
     try:
         agents = get_agents()
         message = send_email_message(receiver_email, selected_email)
 
-        await Runner.run(agents.send_manager, message)
+        await agent_runner.run(agents.send_manager, message)
 
         return SEND_COMPLETE_STATUS.format(receiver=receiver_email)
     except Exception as exc:

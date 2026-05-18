@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import AsyncMock, patch
 
 from sales_agent.config import (
     EMAIL_GENERATED_STATUS,
@@ -8,6 +7,7 @@ from sales_agent.config import (
 )
 from sales_agent.flows import generate_emails, generation_error_result, missing_fields
 from sales_agent.schemas import GenerationResult, SalesPickerOutput
+from tests.conftest import FakeAgentRunner
 
 
 def test_missing_fields_detects_blank_product_context():
@@ -67,12 +67,13 @@ async def test_generate_emails_success(
             return mock_run_result(draft_3)
         raise AssertionError(f"Unexpected agent: {agent.name}")
 
-    with patch("sales_agent.flows.Runner.run", side_effect=fake_run):
-        result = await generate_emails(
-            receiver_email="user@example.com",
-            recipient_title="Dear Leader",
-            product_context="SynthPilot helps teams prioritize features.",
-        )
+    runner = FakeAgentRunner(fake_run)
+    result = await generate_emails(
+        receiver_email="user@example.com",
+        recipient_title="Dear Leader",
+        product_context="SynthPilot helps teams prioritize features.",
+        runner=runner,
+    )
 
     assert result.draft_1 == draft_1
     assert result.draft_2 == draft_2
@@ -81,6 +82,7 @@ async def test_generate_emails_success(
     assert result.selected_email == sample_picker_output.selected_email
     assert result.status == EMAIL_GENERATED_STATUS
     assert result.ready_to_send is True
+    assert len(runner.calls) == 4
 
 
 @pytest.mark.asyncio
@@ -102,12 +104,12 @@ async def test_generate_emails_parses_structured_picker_output(mock_run_result, 
             return mock_run_result(draft_3)
         raise AssertionError(f"Unexpected agent: {agent.name}")
 
-    with patch("sales_agent.flows.Runner.run", side_effect=fake_run):
-        result = await generate_emails(
-            receiver_email="user@example.com",
-            recipient_title="Dear Leader",
-            product_context="Context",
-        )
+    result = await generate_emails(
+        receiver_email="user@example.com",
+        recipient_title="Dear Leader",
+        product_context="Context",
+        runner=FakeAgentRunner(fake_run),
+    )
 
     assert result.explanation == "Leading explanation"
     assert result.selected_email == "Selected email body"
@@ -130,29 +132,28 @@ async def test_generate_emails_rejects_incomplete_picker_output(
             return mock_run_result(draft_2)
         return mock_run_result(draft_3)
 
-    with patch("sales_agent.flows.Runner.run", side_effect=fake_run):
-        result = await generate_emails(
-            receiver_email="user@example.com",
-            recipient_title="Dear Leader",
-            product_context="Context",
-        )
+    result = await generate_emails(
+        receiver_email="user@example.com",
+        recipient_title="Dear Leader",
+        product_context="Context",
+        runner=FakeAgentRunner(fake_run),
+    )
 
     assert result.ready_to_send is False
     assert "incomplete selection" in result.status
 
 
 @pytest.mark.asyncio
-async def test_generate_emails_handles_runner_exceptions(mock_run_result):
-    with patch(
-        "sales_agent.flows.Runner.run",
-        new_callable=AsyncMock,
-        side_effect=RuntimeError("API unavailable"),
-    ):
-        result = await generate_emails(
-            receiver_email="user@example.com",
-            recipient_title="Dear Leader",
-            product_context="Context",
-        )
+async def test_generate_emails_handles_runner_exceptions():
+    async def failing_run(agent, message):
+        raise RuntimeError("API unavailable")
+
+    result = await generate_emails(
+        receiver_email="user@example.com",
+        recipient_title="Dear Leader",
+        product_context="Context",
+        runner=FakeAgentRunner(failing_run),
+    )
 
     assert result.ready_to_send is False
     assert result.status == GENERATION_FAILED_STATUS.format(
