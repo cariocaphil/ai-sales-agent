@@ -2,13 +2,7 @@ import asyncio
 
 from agents import Runner
 
-from sales_agent.agents_factory import (
-    sales_agent1,
-    sales_agent2,
-    sales_agent3,
-    sales_picker,
-    send_manager,
-)
+from sales_agent.agents_factory import get_agents
 from sales_agent.config import (
     EMAIL_GENERATED_STATUS,
     GENERATION_FAILED_STATUS,
@@ -60,12 +54,13 @@ async def generate_emails(
         )
 
     try:
+        agents = get_agents()
         message = email_generation_message(recipient_title, product_context)
 
         results = await asyncio.gather(
-            Runner.run(sales_agent1, message),
-            Runner.run(sales_agent2, message),
-            Runner.run(sales_agent3, message),
+            Runner.run(agents.professional, message),
+            Runner.run(agents.engaging, message),
+            Runner.run(agents.concise, message),
         )
 
         draft_1 = results[0].final_output
@@ -74,7 +69,7 @@ async def generate_emails(
 
         picker_input = picker_input_message(draft_1, draft_2, draft_3)
 
-        best = await Runner.run(sales_picker, picker_input)
+        best = await Runner.run(agents.picker, picker_input)
 
         selection = best.final_output
         explanation = selection.explanation.strip()
@@ -112,9 +107,10 @@ async def send_selected_email(
         return NO_EMAIL_TO_SEND_STATUS
 
     try:
+        agents = get_agents()
         message = send_email_message(receiver_email, selected_email)
 
-        await Runner.run(send_manager, message)
+        await Runner.run(agents.send_manager, message)
 
         return SEND_COMPLETE_STATUS.format(receiver=receiver_email)
     except Exception as exc:
