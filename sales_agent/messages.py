@@ -1,10 +1,11 @@
-def email_generation_message(recipient_title: str, product_context: str) -> str:
-    return f"""
-Write a cold sales email addressed to: {recipient_title}
+from sales_agent.prompts import EMAIL_GENERATION_MESSAGE_TEMPLATE
 
-Product context:
-{product_context}
-"""
+
+def email_generation_message(recipient_title: str, product_context: str) -> str:
+    return EMAIL_GENERATION_MESSAGE_TEMPLATE.format(
+        recipient_title=recipient_title,
+        product_context=product_context,
+    ).strip()
 
 
 def picker_input_message(draft_1: str, draft_2: str, draft_3: str) -> str:
