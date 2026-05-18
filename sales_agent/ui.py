@@ -2,7 +2,7 @@ import asyncio
 
 import gradio as gr
 
-from config import (
+from sales_agent.config import (
     APP_TITLE,
     DEFAULT_PRODUCT_CONTEXT,
     DEFAULT_RECEIVER_EMAIL,
@@ -16,8 +16,8 @@ from config import (
     STATUS_LINES,
     STEP1_READY_STATUS,
 )
-from flows import generate_emails, send_selected_email
-from schemas import GenerationResult
+from sales_agent.flows import generate_emails, send_selected_email
+from sales_agent.schemas import GenerationResult
 
 
 def _send_button_enabled(enabled: bool):

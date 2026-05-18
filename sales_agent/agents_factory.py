@@ -1,14 +1,14 @@
 from agents import Agent
 
-from email_service import send_email
-from prompts import (
+from sales_agent.email_service import send_email
+from sales_agent.prompts import (
     CONCISE_SALES_INSTRUCTIONS,
     ENGAGING_SALES_INSTRUCTIONS,
     PROFESSIONAL_SALES_INSTRUCTIONS,
     SALES_PICKER_INSTRUCTIONS,
     SEND_MANAGER_INSTRUCTIONS,
 )
-from schemas import SalesPickerOutput
+from sales_agent.schemas import SalesPickerOutput
 
 MODEL = "gpt-4o-mini"
 

@@ -2,14 +2,14 @@ import asyncio
 
 from agents import Runner
 
-from agents_factory import (
+from sales_agent.agents_factory import (
     sales_agent1,
     sales_agent2,
     sales_agent3,
     sales_picker,
     send_manager,
 )
-from config import (
+from sales_agent.config import (
     EMAIL_GENERATED_STATUS,
     GENERATION_FAILED_STATUS,
     MISSING_INPUT_STATUS,
@@ -17,13 +17,13 @@ from config import (
     SEND_COMPLETE_STATUS,
     SEND_FAILED_STATUS,
 )
-from errors import user_message
-from messages import (
+from sales_agent.errors import user_message
+from sales_agent.messages import (
     email_generation_message,
     picker_input_message,
     send_email_message,
 )
-from schemas import GenerationResult
+from sales_agent.schemas import GenerationResult
 
 
 def missing_fields(**fields: str | None) -> list[str]:

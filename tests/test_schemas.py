@@ -3,7 +3,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from schemas import GenerationResult, SalesPickerOutput
+from sales_agent.schemas import GenerationResult, SalesPickerOutput
 from tests.conftest import parse_json_output
 
 

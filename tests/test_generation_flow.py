@@ -1,13 +1,13 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from config import (
+from sales_agent.config import (
     EMAIL_GENERATED_STATUS,
     GENERATION_FAILED_STATUS,
     MISSING_INPUT_STATUS,
 )
-from flows import generate_emails, generation_error_result, missing_fields
-from schemas import GenerationResult, SalesPickerOutput
+from sales_agent.flows import generate_emails, generation_error_result, missing_fields
+from sales_agent.schemas import GenerationResult, SalesPickerOutput
 
 
 def test_missing_fields_detects_blank_product_context():
@@ -67,7 +67,7 @@ async def test_generate_emails_success(
             return mock_run_result(draft_3)
         raise AssertionError(f"Unexpected agent: {agent.name}")
 
-    with patch("flows.Runner.run", side_effect=fake_run):
+    with patch("sales_agent.flows.Runner.run", side_effect=fake_run):
         result = await generate_emails(
             receiver_email="user@example.com",
             recipient_title="Dear Leader",
@@ -102,7 +102,7 @@ async def test_generate_emails_parses_structured_picker_output(mock_run_result, 
             return mock_run_result(draft_3)
         raise AssertionError(f"Unexpected agent: {agent.name}")
 
-    with patch("flows.Runner.run", side_effect=fake_run):
+    with patch("sales_agent.flows.Runner.run", side_effect=fake_run):
         result = await generate_emails(
             receiver_email="user@example.com",
             recipient_title="Dear Leader",
@@ -130,7 +130,7 @@ async def test_generate_emails_rejects_incomplete_picker_output(
             return mock_run_result(draft_2)
         return mock_run_result(draft_3)
 
-    with patch("flows.Runner.run", side_effect=fake_run):
+    with patch("sales_agent.flows.Runner.run", side_effect=fake_run):
         result = await generate_emails(
             receiver_email="user@example.com",
             recipient_title="Dear Leader",
@@ -144,7 +144,7 @@ async def test_generate_emails_rejects_incomplete_picker_output(
 @pytest.mark.asyncio
 async def test_generate_emails_handles_runner_exceptions(mock_run_result):
     with patch(
-        "flows.Runner.run",
+        "sales_agent.flows.Runner.run",
         new_callable=AsyncMock,
         side_effect=RuntimeError("API unavailable"),
     ):

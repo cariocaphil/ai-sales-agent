@@ -1,10 +1,11 @@
 import json
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
-from schemas import SalesPickerOutput
+import sales_agent.config  # noqa: F401 — load environment variables for tests
+from sales_agent.schemas import SalesPickerOutput
 
 
 @pytest.fixture
@@ -53,7 +54,7 @@ def mock_sendgrid_client(monkeypatch):
     mock_client_class = MagicMock(return_value=mock_sg)
 
     monkeypatch.setattr(
-        "email_service.sendgrid.SendGridAPIClient",
+        "sales_agent.email_service.sendgrid.SendGridAPIClient",
         mock_client_class,
     )
     return mock_client_class, mock_post

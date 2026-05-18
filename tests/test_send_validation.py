@@ -1,14 +1,14 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from config import (
+from sales_agent.config import (
     MISSING_INPUT_STATUS,
     NO_EMAIL_TO_SEND_STATUS,
     SEND_COMPLETE_STATUS,
     SEND_FAILED_STATUS,
 )
-from errors import EmailSendError
-from flows import missing_fields, send_selected_email
+from sales_agent.errors import EmailSendError
+from sales_agent.flows import missing_fields, send_selected_email
 
 
 def test_missing_fields_detects_blank_receiver():
@@ -37,7 +37,7 @@ async def test_send_selected_email_requires_selected_email():
 
 @pytest.mark.asyncio
 async def test_send_selected_email_success():
-    with patch("flows.Runner.run", new_callable=AsyncMock) as mock_run:
+    with patch("sales_agent.flows.Runner.run", new_callable=AsyncMock) as mock_run:
         status = await send_selected_email(
             receiver_email="user@example.com",
             selected_email="Approved body",
@@ -50,7 +50,7 @@ async def test_send_selected_email_success():
 @pytest.mark.asyncio
 async def test_send_selected_email_returns_failure_message():
     with patch(
-        "flows.Runner.run",
+        "sales_agent.flows.Runner.run",
         new_callable=AsyncMock,
         side_effect=EmailSendError("SendGrid returned status 500."),
     ):
