@@ -5,13 +5,14 @@ from agents import Agent
 
 from sales_agent.email_service import send_email
 from sales_agent.prompts import (
+    COMPLIANCE_REVIEWER_INSTRUCTIONS,
     CONCISE_SALES_INSTRUCTIONS,
     ENGAGING_SALES_INSTRUCTIONS,
     PROFESSIONAL_SALES_INSTRUCTIONS,
     SALES_PICKER_INSTRUCTIONS,
     SEND_MANAGER_INSTRUCTIONS,
 )
-from sales_agent.schemas import SalesPickerOutput
+from sales_agent.schemas import ComplianceReviewOutput, SalesPickerOutput
 
 MODEL = "gpt-4o-mini"
 
@@ -21,6 +22,7 @@ class AgentsBundle:
     professional: Agent
     engaging: Agent
     concise: Agent
+    compliance_reviewer: Agent
     picker: Agent
     send_manager: Agent
 
@@ -41,6 +43,12 @@ def get_agents() -> AgentsBundle:
         concise=Agent(
             name="Busy Sales Agent",
             instructions=CONCISE_SALES_INSTRUCTIONS,
+            model=MODEL,
+        ),
+        compliance_reviewer=Agent(
+            name="Compliance Reviewer",
+            instructions=COMPLIANCE_REVIEWER_INSTRUCTIONS,
+            output_type=ComplianceReviewOutput,
             model=MODEL,
         ),
         picker=Agent(

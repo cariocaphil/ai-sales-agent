@@ -85,11 +85,14 @@ async def test_generate_emails_validates_required_inputs():
 async def test_generate_emails_success(
     mock_run_result,
     sample_drafts,
+    sample_compliance_review,
     sample_picker_output,
 ):
     draft_1, draft_2, draft_3 = sample_drafts
 
     async def fake_run(agent, message):
+        if agent.name == "Compliance Reviewer":
+            return mock_run_result(sample_compliance_review)
         if agent.name == "Sales Picker":
             return mock_run_result(sample_picker_output)
         if agent.name == "Professional Sales Agent":
@@ -115,11 +118,15 @@ async def test_generate_emails_success(
     assert result.selected_email == sample_picker_output.selected_email
     assert result.status == EMAIL_GENERATED_STATUS
     assert result.ready_to_send is True
-    assert len(runner.calls) == 4
+    assert len(runner.calls) == 5
 
 
 @pytest.mark.asyncio
-async def test_generate_emails_parses_structured_picker_output(mock_run_result, sample_drafts):
+async def test_generate_emails_parses_structured_picker_output(
+    mock_run_result,
+    sample_drafts,
+    sample_compliance_review,
+):
     draft_1, draft_2, draft_3 = sample_drafts
     picker_output = SalesPickerOutput(
         explanation="  Leading explanation  ",
@@ -132,6 +139,8 @@ async def test_generate_emails_parses_structured_picker_output(mock_run_result, 
     )
 
     async def fake_run(agent, message):
+        if agent.name == "Compliance Reviewer":
+            return mock_run_result(sample_compliance_review)
         if agent.name == "Sales Picker":
             return mock_run_result(picker_output)
         if agent.name == "Professional Sales Agent":
@@ -158,6 +167,7 @@ async def test_generate_emails_parses_structured_picker_output(mock_run_result, 
 async def test_generate_emails_rejects_incomplete_picker_output(
     mock_run_result,
     sample_drafts,
+    sample_compliance_review,
 ):
     draft_1, draft_2, draft_3 = sample_drafts
     incomplete = SalesPickerOutput(
@@ -171,6 +181,8 @@ async def test_generate_emails_rejects_incomplete_picker_output(
     )
 
     async def fake_run(agent, message):
+        if agent.name == "Compliance Reviewer":
+            return mock_run_result(sample_compliance_review)
         if agent.name == "Sales Picker":
             return mock_run_result(incomplete)
         if agent.name == "Professional Sales Agent":

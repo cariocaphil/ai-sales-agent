@@ -3,7 +3,12 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from sales_agent.schemas import GenerationResult, SalesPickerOutput
+from sales_agent.schemas import (
+    ComplianceReviewOutput,
+    EmailComplianceAssessment,
+    GenerationResult,
+    SalesPickerOutput,
+)
 from tests.conftest import parse_json_output
 
 
@@ -65,6 +70,25 @@ def test_generation_result_to_gradio_tuple_duplicates_selected_email():
         "email body",
         "ok",
     )
+
+
+def test_compliance_review_output_reject_all_when_index_zero():
+    review = ComplianceReviewOutput(
+        email_assessments=[
+            EmailComplianceAssessment(
+                email_index=i,
+                compliance_notes=f"Notes {i}",
+                professionalism_score=3,
+                grounding_score=3,
+                is_compliant=False,
+            )
+            for i in range(1, 4)
+        ],
+        recommended_email_index=0,
+        overall_reasoning="Reject all.",
+    )
+
+    assert review.reject_all is True
 
 
 def test_sales_picker_output_strips_are_applied_in_flow_not_schema():
