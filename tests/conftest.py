@@ -5,7 +5,11 @@ from unittest.mock import MagicMock
 import pytest
 
 import sales_agent.config  # noqa: F401 — load environment variables for tests
-from sales_agent.schemas import SalesPickerOutput
+from sales_agent.schemas import (
+    ComplianceReviewOutput,
+    EmailComplianceAssessment,
+    SalesPickerOutput,
+)
 
 
 @pytest.fixture
@@ -21,6 +25,40 @@ def sample_picker_output():
     return SalesPickerOutput(
         explanation="Clear value proposition and concise call to action.",
         selected_email="Dear Product Leader,\n\nSynthPilot can help your team.\n\nBest,\nSales",
+    )
+
+
+@pytest.fixture
+def sample_compliance_review():
+    return ComplianceReviewOutput(
+        email_assessments=[
+            EmailComplianceAssessment(
+                email_index=1,
+                compliance_notes="Grounded and professional.",
+                risk_flags=[],
+                professionalism_score=5,
+                grounding_score=5,
+                is_compliant=True,
+            ),
+            EmailComplianceAssessment(
+                email_index=2,
+                compliance_notes="Engaging and accurate.",
+                risk_flags=[],
+                professionalism_score=4,
+                grounding_score=4,
+                is_compliant=True,
+            ),
+            EmailComplianceAssessment(
+                email_index=3,
+                compliance_notes="Concise and clear.",
+                risk_flags=[],
+                professionalism_score=4,
+                grounding_score=4,
+                is_compliant=True,
+            ),
+        ],
+        recommended_email_index=1,
+        overall_reasoning="Email 1 is the most grounded and professional.",
     )
 
 

@@ -1,7 +1,10 @@
 import asyncio
+import logging
 
 from sales_agent.agents_factory import get_agents
+from sales_agent.compliance_logging import log_compliance_review
 from sales_agent.config import (
+    COMPLIANCE_REJECTION_STATUS,
     EMAIL_GENERATED_STATUS,
     GENERATION_FAILED_STATUS,
     MISSING_INPUT_STATUS,
@@ -15,14 +18,18 @@ from sales_agent.errors import (
     user_message,
 )
 from sales_agent.messages import (
+    compliance_review_message,
     email_generation_message,
+    format_compliance_review_for_picker,
     picker_input_message,
     send_email_message,
 )
 from sales_agent.output_validation import validate_generation_output
 from sales_agent.product_context_validation import validate_product_context
 from sales_agent.runner import AgentRunner, default_runner
-from sales_agent.schemas import GenerationResult
+from sales_agent.schemas import ComplianceReviewOutput, GenerationResult
+
+logger = logging.getLogger(__name__)
 
 
 def missing_fields(**fields: str | None) -> list[str]:
@@ -46,6 +53,24 @@ def generation_error_result(error: str) -> GenerationResult:
 
 def generation_validation_error(message: str) -> GenerationResult:
     return GenerationResult.failure(message)
+
+
+def _handle_compliance_rejection(review: ComplianceReviewOutput) -> GenerationResult | None:
+    if review.reject_all:
+        logger.warning(
+            "Compliance review rejected all drafts: %s",
+            review.overall_reasoning,
+        )
+        return generation_validation_error(COMPLIANCE_REJECTION_STATUS)
+
+    if not any(assessment.is_compliant for assessment in review.email_assessments):
+        logger.warning(
+            "Compliance review marked every draft non-compliant: %s",
+            review.overall_reasoning,
+        )
+        return generation_validation_error(COMPLIANCE_REJECTION_STATUS)
+
+    return None
 
 
 async def generate_emails(
@@ -87,7 +112,29 @@ async def generate_emails(
         draft_2 = results[1].final_output
         draft_3 = results[2].final_output
 
-        picker_input = picker_input_message(draft_1, draft_2, draft_3)
+        compliance_input = compliance_review_message(
+            validated_product_context,
+            draft_1,
+            draft_2,
+            draft_3,
+        )
+        compliance_result = await agent_runner.run(
+            agents.compliance_reviewer,
+            compliance_input,
+        )
+        compliance_review = compliance_result.final_output
+        log_compliance_review(compliance_review)
+
+        rejection_result = _handle_compliance_rejection(compliance_review)
+        if rejection_result is not None:
+            return rejection_result
+
+        picker_input = picker_input_message(
+            draft_1,
+            draft_2,
+            draft_3,
+            compliance_review,
+        )
 
         best = await agent_runner.run(agents.picker, picker_input)
 
@@ -109,6 +156,7 @@ async def generate_emails(
             selected_email=validated_output.selected_email,
             status=EMAIL_GENERATED_STATUS,
             ready_to_send=True,
+            compliance_summary=format_compliance_review_for_picker(compliance_review),
         )
     except Exception as exc:
         return generation_error_result(user_message(exc))

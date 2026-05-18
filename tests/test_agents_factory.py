@@ -22,10 +22,11 @@ def test_get_agents_builds_all_agents_lazily():
         clear_agents_cache()
         bundle = get_agents()
 
-    assert mock_agent.call_count == 5
+    assert mock_agent.call_count == 6
     assert bundle.professional.name == "Professional Sales Agent"
     assert bundle.engaging.name == "Engaging Sales Agent"
     assert bundle.concise.name == "Busy Sales Agent"
+    assert bundle.compliance_reviewer.name == "Compliance Reviewer"
     assert bundle.picker.name == "Sales Picker"
     assert bundle.send_manager.name == "Send Manager"
 
