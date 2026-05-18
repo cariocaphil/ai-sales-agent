@@ -17,15 +17,15 @@ from config import (
     STEP1_READY_STATUS,
 )
 from flows import generate_emails, send_selected_email
+from schemas import GenerationResult
 
 
 def _send_button_enabled(enabled: bool):
     return gr.update(interactive=enabled)
 
 
-def _wrap_generation_result(result: tuple):
-    *outputs, ready_to_send = result
-    return (*outputs, _send_button_enabled(ready_to_send))
+def _wrap_generation_result(result: GenerationResult):
+    return (*result.to_gradio_tuple(), _send_button_enabled(result.ready_to_send))
 
 
 def reset_after_input_change():

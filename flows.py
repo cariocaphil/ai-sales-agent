@@ -23,6 +23,7 @@ from messages import (
     picker_input_message,
     send_email_message,
 )
+from schemas import GenerationResult
 
 
 def missing_fields(**fields: str | None) -> list[str]:
@@ -38,9 +39,10 @@ def missing_fields(**fields: str | None) -> list[str]:
     ]
 
 
-def generation_error_result(error: str) -> tuple:
-    status = GENERATION_FAILED_STATUS.format(error=error)
-    return ("", "", "", "", "", "", status, False)
+def generation_error_result(error: str) -> GenerationResult:
+    return GenerationResult.failure(
+        GENERATION_FAILED_STATUS.format(error=error)
+    )
 
 
 async def generate_emails(
@@ -83,15 +85,14 @@ async def generate_emails(
                 "The picker returned an incomplete selection."
             )
 
-        return (
-            draft_1,
-            draft_2,
-            draft_3,
-            explanation,
-            selected_email,
-            selected_email,
-            EMAIL_GENERATED_STATUS,
-            True,
+        return GenerationResult(
+            draft_1=draft_1,
+            draft_2=draft_2,
+            draft_3=draft_3,
+            explanation=explanation,
+            selected_email=selected_email,
+            status=EMAIL_GENERATED_STATUS,
+            ready_to_send=True,
         )
     except Exception as exc:
         return generation_error_result(user_message(exc))
