@@ -9,5 +9,5 @@ def test_email_generation_message_injects_product_context():
 
     assert "Dear Alex" in message
     assert "Acme Analytics helps teams track churn." in message
-    assert "Product or service context:" in message
+    assert "Product or service context (source material only" in message
     assert "SynthPilot" not in message

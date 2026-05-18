@@ -37,6 +37,19 @@ GENERATION_FAILED_STATUS = "Failed to generate emails: {error}"
 SEND_FAILED_STATUS = "Failed to send email: {error}"
 MISSING_INPUT_STATUS = "Please provide: {fields}"
 
+PRODUCT_CONTEXT_MAX_LENGTH = 2000
+PRODUCT_CONTEXT_EMPTY_ERROR = (
+    "Please enter a product or service description."
+)
+PRODUCT_CONTEXT_TOO_LONG_ERROR = (
+    "Product description must be {max_length} characters or fewer "
+    "(you entered {length})."
+)
+PRODUCT_CONTEXT_INSTRUCTION_LIKE_ERROR = (
+    "Product description must describe your product or service only, "
+    "not instructions for the AI."
+)
+
 PRODUCT_CONTEXT_LINES = 4
 DRAFT_LINES = 14
 EXPLANATION_LINES = 4
