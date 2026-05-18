@@ -9,12 +9,13 @@ from sales_agent.config import (
     SEND_COMPLETE_STATUS,
     SEND_FAILED_STATUS,
 )
-from sales_agent.errors import user_message
+from sales_agent.errors import ProductContextValidationError, user_message
 from sales_agent.messages import (
     email_generation_message,
     picker_input_message,
     send_email_message,
 )
+from sales_agent.product_context_validation import validate_product_context
 from sales_agent.runner import AgentRunner, default_runner
 from sales_agent.schemas import GenerationResult
 
@@ -38,6 +39,10 @@ def generation_error_result(error: str) -> GenerationResult:
     )
 
 
+def generation_validation_error(message: str) -> GenerationResult:
+    return GenerationResult.failure(message)
+
+
 async def generate_emails(
     receiver_email,
     recipient_title,
@@ -47,18 +52,25 @@ async def generate_emails(
 ):
     missing = missing_fields(
         recipient_title=recipient_title,
-        product_context=product_context,
     )
     if missing:
         return generation_error_result(
             MISSING_INPUT_STATUS.format(fields=", ".join(missing))
         )
 
+    try:
+        validated_product_context = validate_product_context(product_context)
+    except ProductContextValidationError as exc:
+        return generation_validation_error(str(exc))
+
     agent_runner = runner or default_runner
 
     try:
         agents = get_agents()
-        message = email_generation_message(recipient_title, product_context)
+        message = email_generation_message(
+            recipient_title,
+            validated_product_context,
+        )
 
         results = await asyncio.gather(
             agent_runner.run(agents.professional, message),

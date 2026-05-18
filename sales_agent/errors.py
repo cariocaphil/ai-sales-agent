@@ -14,6 +14,10 @@ class EmailSendError(AppError):
     pass
 
 
+class ProductContextValidationError(AppError):
+    pass
+
+
 def user_message(exc: BaseException) -> str:
     if isinstance(exc, AppError):
         return str(exc)
