@@ -7,6 +7,7 @@ from sales_agent.config import (
     PRODUCT_CONTEXT_EMPTY_ERROR,
     PRODUCT_CONTEXT_INSTRUCTION_LIKE_ERROR,
     PRODUCT_CONTEXT_MAX_LENGTH,
+    OUTPUT_VALIDATION_EMPTY_ERROR,
 )
 from sales_agent.flows import generate_emails, generation_error_result, missing_fields
 from sales_agent.schemas import GenerationResult, SalesPickerOutput
@@ -122,7 +123,12 @@ async def test_generate_emails_parses_structured_picker_output(mock_run_result, 
     draft_1, draft_2, draft_3 = sample_drafts
     picker_output = SalesPickerOutput(
         explanation="  Leading explanation  ",
-        selected_email="  Selected email body  ",
+        selected_email=(
+            "  Dear Product Leader,\n\n"
+            "We help teams turn feedback into clear product priorities. "
+            "Would you be open to a short conversation next week?\n\n"
+            "Best regards,\nSales  "
+        ),
     )
 
     async def fake_run(agent, message):
@@ -144,7 +150,8 @@ async def test_generate_emails_parses_structured_picker_output(mock_run_result, 
     )
 
     assert result.explanation == "Leading explanation"
-    assert result.selected_email == "Selected email body"
+    assert result.selected_email.startswith("Dear Product Leader")
+    assert "Best regards" in result.selected_email
 
 
 @pytest.mark.asyncio
@@ -153,7 +160,15 @@ async def test_generate_emails_rejects_incomplete_picker_output(
     sample_drafts,
 ):
     draft_1, draft_2, draft_3 = sample_drafts
-    incomplete = SalesPickerOutput(explanation="", selected_email="Email only")
+    incomplete = SalesPickerOutput(
+        explanation="",
+        selected_email=(
+            "Dear Product Leader,\n\n"
+            "We help teams turn feedback into clear product priorities. "
+            "Would you be open to a short conversation next week?\n\n"
+            "Best regards,\nSales"
+        ),
+    )
 
     async def fake_run(agent, message):
         if agent.name == "Sales Picker":
@@ -172,7 +187,7 @@ async def test_generate_emails_rejects_incomplete_picker_output(
     )
 
     assert result.ready_to_send is False
-    assert "incomplete selection" in result.status
+    assert result.status == OUTPUT_VALIDATION_EMPTY_ERROR
 
 
 @pytest.mark.asyncio

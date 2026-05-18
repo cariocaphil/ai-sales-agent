@@ -50,6 +50,61 @@ PRODUCT_CONTEXT_INSTRUCTION_LIKE_ERROR = (
     "not instructions for the AI."
 )
 
+EMAIL_OUTPUT_MIN_LENGTH = 30
+EMAIL_OUTPUT_MAX_LENGTH = 4000
+EXPLANATION_OUTPUT_MAX_LENGTH = 1000
+
+OUTPUT_BANNED_PHRASES = (
+    "ignore previous instructions",
+    "as an ai",
+    "as a language model",
+    "guaranteed results",
+    "100% success",
+    "risk-free guarantee",
+    "no risk guarantee",
+    "act now or miss out",
+    "limited time only",
+)
+
+OUTPUT_LEAKED_PROMPT_MARKERS = (
+    "system prompt",
+    "internal instructions",
+    "agent names",
+    "selection logic",
+    "openai",
+    "sales picker",
+    "professional sales agent",
+)
+
+OUTPUT_PLACEHOLDER_PATTERNS = (
+    r"\{[a-zA-Z_]+\}",
+    r"<short explanation>",
+    r"<full selected email>",
+    r"<[^>]+>",
+)
+
+OUTPUT_VALIDATION_EMPTY_ERROR = (
+    "The generated email could not be used because required content was missing. "
+    "Please generate again."
+)
+OUTPUT_VALIDATION_EMAIL_LENGTH_ERROR = (
+    "The selected email length is outside the allowed range. Please generate again."
+)
+OUTPUT_VALIDATION_EXPLANATION_LENGTH_ERROR = (
+    "The selection explanation is too long. Please generate again."
+)
+OUTPUT_VALIDATION_BANNED_PHRASE_ERROR = (
+    "The generated content contains language that is not allowed. "
+    "Please generate again."
+)
+OUTPUT_VALIDATION_PLACEHOLDER_ERROR = (
+    "The selected email still contains template placeholders. Please generate again."
+)
+OUTPUT_VALIDATION_LEAKAGE_ERROR = (
+    "The generated content appears to include internal system text. "
+    "Please generate again."
+)
+
 PRODUCT_CONTEXT_LINES = 4
 DRAFT_LINES = 14
 EXPLANATION_LINES = 4

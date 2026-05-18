@@ -9,12 +9,17 @@ from sales_agent.config import (
     SEND_COMPLETE_STATUS,
     SEND_FAILED_STATUS,
 )
-from sales_agent.errors import ProductContextValidationError, user_message
+from sales_agent.errors import (
+    OutputValidationError,
+    ProductContextValidationError,
+    user_message,
+)
 from sales_agent.messages import (
     email_generation_message,
     picker_input_message,
     send_email_message,
 )
+from sales_agent.output_validation import validate_generation_output
 from sales_agent.product_context_validation import validate_product_context
 from sales_agent.runner import AgentRunner, default_runner
 from sales_agent.schemas import GenerationResult
@@ -87,20 +92,21 @@ async def generate_emails(
         best = await agent_runner.run(agents.picker, picker_input)
 
         selection = best.final_output
-        explanation = selection.explanation.strip()
-        selected_email = selection.selected_email.strip()
 
-        if not explanation or not selected_email:
-            return generation_error_result(
-                "The picker returned an incomplete selection."
+        try:
+            validated_output = validate_generation_output(
+                selection.explanation,
+                selection.selected_email,
             )
+        except OutputValidationError as exc:
+            return generation_validation_error(str(exc))
 
         return GenerationResult(
             draft_1=draft_1,
             draft_2=draft_2,
             draft_3=draft_3,
-            explanation=explanation,
-            selected_email=selected_email,
+            explanation=validated_output.explanation,
+            selected_email=validated_output.selected_email,
             status=EMAIL_GENERATED_STATUS,
             ready_to_send=True,
         )
