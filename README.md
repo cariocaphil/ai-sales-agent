@@ -34,9 +34,9 @@ Three sales agents draft competing cold emails, a picker agent selects the best 
 
 The email is **not sent automatically** after generation.
 
-### Product context
+### Product or service context
 
-The demo product is **SynthPilot**, a fictional platform for analyzing user feedback and prioritizing features. Agent instructions define the baseline product; the **Product context** field in the UI adds run-specific detail for each generation.
+Enter what you are selling in the **Product or service description** field. That text is injected into each sales agent’s generation prompt at runtime. Agent instructions only define role and writing style (professional, engaging, or concise)—not a fixed product.
 
 ## Project structure
 

@@ -106,7 +106,7 @@ def build_demo() -> gr.Blocks:
             )
 
         product_context = gr.Textbox(
-            label="Product context",
+            label="Product or service description",
             value=DEFAULT_PRODUCT_CONTEXT,
             lines=PRODUCT_CONTEXT_LINES,
         )
